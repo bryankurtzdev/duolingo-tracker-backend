@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
+from flask_cors import CORS
 import requests
 import pandas as pd
 import os
 
 app = Flask(__name__)
+CORS(app)   
 
 # Cabeçalho para evitar bloqueio
 HEADERS = {
