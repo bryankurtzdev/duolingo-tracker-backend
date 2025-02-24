@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 app = Flask(__name__)
-CORS(app)   
+CORS(app, origins=["https://bryankurtzdev.github.io"])  
 
 # Cabeçalho para evitar bloqueio
 HEADERS = {
