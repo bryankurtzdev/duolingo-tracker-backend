@@ -37,9 +37,9 @@ def get_total_xp(user_id):
 def favicon():
     return send_from_directory("static", "duotracker.png", mimetype="image/png")
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
 
 @app.route('/processar', methods=['POST'])
 def processar():
