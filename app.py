@@ -1,11 +1,12 @@
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
+import json  # Apenas para depuração
 import requests
 import pandas as pd
 import os
 
 app = Flask(__name__)
-CORS(app, origins=["https://bryankurtzdev.github.io"])  
+CORS(app)
 
 # Cabeçalho para evitar bloqueio
 HEADERS = {
@@ -23,27 +24,39 @@ def get_user_id(username):
             return data["users"][0].get("id")
     return None
 
-def get_course_xp(user_id):
-    """ Obtém o XP específico dentro da chave 'courses' de um usuário pelo ID """
+def get_english_xp(user_id):
+    """ Obtém o XP do curso de inglês ('en') de um usuário pelo ID """
     url = f"https://www.duolingo.com/2017-06-30/users/{user_id}?fields=courses"
     response = requests.get(url, headers=HEADERS)
 
     if response.status_code == 200:
         data = response.json()
-        courses = data.get("courses", [])
-        
-        if courses:
-            return sum(course.get("xp", 0) for course in courses)  # Soma o XP de todos os cursos
-        
-    return None
+        courses = data.get("courses", [])  # Obtém a lista de cursos
 
+        # Verifica se há cursos
+        if not courses:
+            print(f"⚠ Nenhum curso encontrado para o usuário {user_id}")
+            return 0
+
+        # Procura o curso de inglês
+        for course in courses:
+            if course.get("learningLanguage") == "en":
+                return course.get("xp", 0)  # Retorna o XP do curso de inglês
+
+        print(f"⚠ Usuário {user_id} não está aprendendo inglês.")
+        return 0  # Retorna 0 se o usuário não estiver aprendendo inglês
+
+    print(f"❌ Erro na requisição para {user_id}, Status Code: {response.status_code}")
+    return 0  # Retorna 0 em caso de erro na requisição
+
+print(get_english_xp(get_user_id(username='marianabonatow')))  # Teste da função
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory("static", "duotracker.png", mimetype="image/png")
 
-# @app.route('/')
-# def index():
-#     return render_template('index.html')
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/processar', methods=['POST'])
 def processar():
@@ -55,8 +68,8 @@ def processar():
     for username in users:
         user_id = get_user_id(username)
         if user_id:
-            xp_total = get_course_xp(user_id)  # Usa a nova função
-            resultados.append({"Usuário": username, "XP Curso": xp_total, "Meta XP": meta_xp})
+            xp_ingles = get_english_xp(user_id)  # Obtém apenas o XP do curso de inglês
+            resultados.append({"Usuário": username, "XP Inglês": xp_ingles, "Meta XP": meta_xp})
 
     # Criar e salvar planilha
     file_path = "duolingo_xp.xlsx"
@@ -66,7 +79,7 @@ def processar():
     return jsonify({
         "message": "Planilha criada com sucesso!", 
         "file_url": "/download",
-        "dados": resultados  # Retorna a lista de usuários e XP do curso
+        "dados": resultados  # Retorna a lista de usuários e XP do curso de inglês
     })
 
 @app.route('/download')
