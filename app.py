@@ -23,14 +23,18 @@ def get_user_id(username):
             return data["users"][0].get("id")
     return None
 
-def get_total_xp(user_id):
-    """ Obtém o XP total de um usuário pelo ID """
-    url = f"https://www.duolingo.com/2017-06-30/users/{user_id}?fields=totalXp,id"
+def get_course_xp(user_id):
+    """ Obtém o XP específico dentro da chave 'courses' de um usuário pelo ID """
+    url = f"https://www.duolingo.com/2017-06-30/users/{user_id}?fields=courses"
     response = requests.get(url, headers=HEADERS)
 
     if response.status_code == 200:
         data = response.json()
-        return data.get("totalXp")
+        courses = data.get("courses", [])
+        
+        if courses:
+            return sum(course.get("xp", 0) for course in courses)  # Soma o XP de todos os cursos
+        
     return None
 
 @app.route('/favicon.ico')
@@ -51,8 +55,8 @@ def processar():
     for username in users:
         user_id = get_user_id(username)
         if user_id:
-            xp_total = get_total_xp(user_id)
-            resultados.append({"Usuário": username, "XP Total": xp_total, "Meta XP": meta_xp})
+            xp_total = get_course_xp(user_id)  # Usa a nova função
+            resultados.append({"Usuário": username, "XP Curso": xp_total, "Meta XP": meta_xp})
 
     # Criar e salvar planilha
     file_path = "duolingo_xp.xlsx"
@@ -62,7 +66,7 @@ def processar():
     return jsonify({
         "message": "Planilha criada com sucesso!", 
         "file_url": "/download",
-        "dados": resultados  # Agora retorna a lista de usuários e XP
+        "dados": resultados  # Retorna a lista de usuários e XP do curso
     })
 
 @app.route('/download')
